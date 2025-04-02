@@ -24,10 +24,12 @@ data class Zettai(val lists: Map<User, List<ToDoList>>) : HttpHandler {
     )
 
     override fun invoke(request: Request): Response = routes(request)
-    private fun showList(req: Request): Response = req.let(::extractListData)
-        .let(::fetchListContent)
-        .let(::renderHtml)
-        .let(::createResponse)
+    private fun showList(req: Request): Response = processFun(req)
+
+    val processFun = ::extractListData andThen
+            ::fetchListContent andThen
+            ::renderHtml andThen
+            ::createResponse
 
     // 요청에서 사용자 이름과 목록 이름을 뽑아낸다.
     fun extractListData(request: Request): Pair<User, ListName> {
@@ -73,3 +75,14 @@ data class ToDoItem(val description: String)
 enum class ToDoStatus { Todo, InProgress, Done, Blocked }
 
 data class HtmlPage(val raw: String)
+
+// FUN<A, B> = (A) -> B: A 타입을 받아 B 타입을 반환하는 함수 타입
+// FUN<Int, String> → Int를 받아 String을 반환하는 함수
+typealias FUN<A, B> = (A) -> B
+
+// FUN<A, B>.andThen(...) 이건 확장 함수임
+// this는 A -> B 함수고, other는 B -> C 함수 즉, A를 C로 만들어주는 함수임
+// { a: A -> other(this(a)) }: a를 받아서 B 값을 얻고, B 함수로 C 값을 얻는 것
+// infix를  쓰면 중간 연산자처럼 쓸 수 있음
+// f.andThen(g) 가 아니라 f andThen g로 쓸 수 있게 해주는 것
+infix fun <A, B, C> FUN<A, B>.andThen(other: FUN<B, C>): FUN<A, C> = { a: A -> other(this(a)) }
