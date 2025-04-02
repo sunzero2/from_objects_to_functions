@@ -7,20 +7,39 @@ import org.http4k.server.asServer
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Assertions.fail
 import org.junit.jupiter.api.Test
+import org.junit.jupiter.api.assertThrows
+import org.opentest4j.AssertionFailedError
 
 class SeeATodoListAT {
+//    @Test
+//    fun `List owners can see their lists`() {
+//        val user = "frank"
+//        val listName = "shopping"
+//        val foodToBuy = listOf("carrots", "apples", "milk")
+//
+//        startTheApplication(user, listName, foodToBuy)
+//
+//        val list = getToDoList(user, listName)
+//
+//        assertEquals(listName, list.listName.name)
+//        assertEquals(foodToBuy, list.items.map { t -> t.description })
+//    }
+
+    @Test
+    fun `Only onwers can see their lists`() {
+        val listName = "shopping"
+        startTheApplication("frank", listName, emptyList())
+
+        assertThrows<AssertionFailedError> { getToDoList("bob", listName) }
+    }
+
     @Test
     fun `List owners can see their lists`() {
-        val user = "frank"
         val listName = "shopping"
         val foodToBuy = listOf("carrots", "apples", "milk")
-
-        startTheApplication(user, listName, foodToBuy)
-
-        val list = getToDoList(user, listName)
-
-        assertEquals(listName, list.listName.name)
-        assertEquals(foodToBuy, list.items.map { t -> t.description })
+        val frank = ToDoListOwner("Frank")
+        startTheApplication(frank.name, listName, foodToBuy)
+        frank.canSeeTheList(listName, foodToBuy)
     }
 
     fun getToDoList(user: String, listName: String): ToDoList {
@@ -58,5 +77,23 @@ class SeeATodoListAT {
 
     private fun extractItemDesc(matchResult: MatchResult): String = matchResult.value.substringAfter("<td>").dropLast(1)
 
+    interface ScenarioActor {
+        val name: String
+    }
+
+    class ToDoListOwner(override val name: String) : ScenarioActor {
+        fun canSeeTheList(listName: String, items: List<String>) {
+            val expectedList = createList(listName, items)
+            val list = getToDoList(name, listName)
+            assertEquals(expectedList, list)
+        }
+
+        private fun getToDoList(user: String, listName: String): ToDoList {
+            TODO()
+        }
+
+    }
+
 }
 
+fun createList(listName: String, items: List<String>) = ToDoList(ListName(listName), items.map(::ToDoItem))
